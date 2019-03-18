@@ -31,11 +31,27 @@ bool SingleStreamer::configureHook()
     config = _config.get();
     if(config.raw_config.empty()){
         std::stringstream s;
-        s << "#transcode{vcodec=" << config.vcodec 
-            << ",vb="<< config.bitrate 
-            << ",acodec=vorb,ab=128,channels=2,samplerate=44100,scodec=none}"
-            << ":http{"
-            << "mux=" << config.mux << ",dst=" << config.dst << "}";
+        s << "#transcode{vcodec=" << config.vcodec << ",vb="<< config.bitrate
+            << ",acodec=none,scodec=none}";
+        s << ":std{";
+        bool need_comma = false;
+        if (!config.access.empty())
+        {
+            need_comma = true;
+            s << "access=" << config.access;
+        }
+        if (!config.mux.empty())
+        {
+            if (need_comma) s << ",";
+            need_comma = true;
+            s << "mux=" << config.mux;
+        }
+        if (!config.dst.empty())
+        {
+            if (need_comma) s << ",";
+            s << "dst=" << config.dst;
+        }
+        s << "}";
         config.raw_config = s.str();
     }   
     
@@ -99,7 +115,6 @@ void SingleStreamer::updateHook()
                     break;
                 }
             }
-
             // output stream
             streamer->write(mat, current_image_->time.toMicroseconds() );
         }
@@ -113,6 +128,7 @@ void SingleStreamer::errorHook()
 void SingleStreamer::stopHook()
 {
     streamer->stop();
+    streamer.reset();
     SingleStreamerBase::stopHook();
 }
 void SingleStreamer::cleanupHook()
